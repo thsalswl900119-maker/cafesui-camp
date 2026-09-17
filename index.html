@@ -255,8 +255,15 @@ h1{font-size:26px;color:var(--corald)}
 .gsub{font-size:12.5px;color:var(--grey);margin:4px 0 10px}
 .glist .tm{border-top:1px solid var(--line);padding:9px 0}
 @media print{.gov{display:none!important}}
-.lesson{margin-top:11px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 13px;font-size:13px;line-height:1.6}
-.lesson h5{font:400 15px var(--head);color:var(--corald);margin:0 0 6px}
+.lesson{margin-top:11px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:0;font-size:13px;line-height:1.6}
+.lesson>summary{font:400 15px var(--head);color:var(--corald);cursor:pointer;list-style:none;padding:11px 13px;display:flex;align-items:center;gap:7px}
+.lesson>summary::-webkit-details-marker{display:none}
+.lesson>summary::before{content:"▸";font-size:12px;color:var(--grey);transition:transform .15s}
+.lesson[open]>summary::before{content:"▾"}
+.lesson>summary:hover{background:var(--sagem);border-radius:11px}
+.lesson[open]>summary{border-bottom:1px solid var(--line);border-radius:11px 11px 0 0}
+.lesson .lbody{padding:11px 13px 13px}
+.lesson .lbody>p:first-child{margin-top:0}
 .lesson table{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
 .lesson th{font:700 11.5px var(--body);color:var(--corald);text-align:left;padding:4px 5px;border-bottom:1.5px solid var(--corall)}
 .lesson td{padding:4px 5px;border-bottom:1px solid var(--line)}
