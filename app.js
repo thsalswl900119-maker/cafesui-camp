@@ -186,8 +186,8 @@ function swatchHTML(list){
 // 용어 설명 — 어려운 말이 나오는 교시에만 붙습니다
 function termBox(list){
   const ok=list.filter(t=>TERMS[t]); if(!ok.length) return '';
-  return `<div class="tms"><div class="tmh">🔤 이 교시에 나오는 말</div>${ok.map(t=>
-    `<div class="tm"><b>${esc(t)}</b><span>${esc(TERMS[t]).replace(/\n/g,'<br>')}</span></div>`).join('')}</div>`;
+  return `<details class="tms"><summary>🔤 이 교시에 나오는 말 <i>${ok.length}개</i></summary><div class="tmbody">${ok.map(t=>
+    `<div class="tm"><b>${esc(t)}</b><span>${esc(TERMS[t]).replace(/\n/g,'<br>')}</span></div>`).join('')}</div></details>`;
 }
 // 프롬프트 위에 붙는 상태 줄 — 몇 칸 채웠는지, 비었으면 무엇이 비었는지
 function pStatHTML(id,body){

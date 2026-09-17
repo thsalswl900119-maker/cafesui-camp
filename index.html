@@ -221,8 +221,15 @@ h1{font-size:26px;color:var(--corald)}
 .dlnote{flex-basis:100%;font-size:11.5px;color:var(--grey);line-height:1.55;margin-top:2px}
 .chain{font-size:10.5px;color:var(--sage);background:var(--sagem);border:1px solid var(--sagel);border-radius:999px;padding:2px 8px;line-height:1.5;white-space:nowrap}
 .chain.new{color:var(--warn);background:var(--warnl);border-color:var(--warn);font-weight:700}
-.tms{margin-top:11px;background:var(--sagem);border:1px solid var(--sagel);border-radius:11px;padding:10px 12px}
-.tmh{font:700 12px var(--body);color:var(--sage);margin-bottom:6px;letter-spacing:.02em}
+.tms{margin-top:11px;background:var(--sagem);border:1px solid var(--sagel);border-radius:11px;padding:0}
+.tms>summary{font:700 12px var(--body);color:var(--sage);letter-spacing:.02em;cursor:pointer;list-style:none;padding:9px 12px;display:flex;align-items:center;gap:6px}
+.tms>summary::-webkit-details-marker{display:none}
+.tms>summary::before{content:"▸";font-size:11px}
+.tms[open]>summary::before{content:"▾"}
+.tms>summary i{font-style:normal;font-weight:400;color:var(--grey);font-size:11.5px}
+.tms>summary:hover{background:var(--sagel);border-radius:11px}
+.tms[open]>summary{border-bottom:1px solid var(--sagel);border-radius:11px 11px 0 0}
+.tms .tmbody{padding:4px 12px 10px}
 .tm{padding:6px 0;border-top:1px solid var(--sagel)}
 .tm:first-of-type{border-top:0}
 .tm b{display:block;font:700 13.5px var(--body);color:var(--ink);margin-bottom:1px}
