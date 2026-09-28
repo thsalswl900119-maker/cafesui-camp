@@ -1,8 +1,20 @@
-// 처음 화면(이름·연락처) · 강사님께 제출 · 강사 확인 화면
-// 적은 내용은 각자 브라우저에만 저장됩니다. 제출은 「제출 코드」를 복사해 보내는 방식입니다.
+// 처음 화면(이름·연락처) · 강사님께 보내기 · 강사 확인 화면
+// 적은 내용은 각자 브라우저에 저장되고, 「강사님께 보내기」를 누르면 카페스이 서버(Firestore)의
+// workbook/이름_뒤4자리 문서로 올라가고, workbook/명단_0000 문서에 그 이름이 추가됩니다.
+// 강사는 6자리 숫자로 들어와 명단에 있는 문서를 하나씩 읽어 목록을 봅니다(로그인 계정 불필요).
 
 const SUBKEY = 'brand2open_subs_v1';
-const PWKEY  = 'brand2open_teacher_v1';   // 강사가 직접 정한 비밀번호의 지문만 담깁니다 (원문 아님)
+const PIN_HASH = 'cd4e0723c70b9257c04db53aeb8572150d7da184c0842755fde972d297e2bcbd';   // 강사 6자리 숫자의 지문(원문은 코드에 없음)
+const ROSTER = '명단_0000';                  // 제출한 사람 목록 문서 (workbook/명단_0000)
+let FB = null;
+try {
+  if (window.firebase && window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) {
+    if (!firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+    FB = firebase.firestore();
+  }
+} catch (e) { FB = null }
+function sid(name, code){ return String(name).replace(/[\/\s]+/g, '') + '_' + code }
+function teacherOn(){ return !!(st.me && st.me.teacher) }
 
 const TAG = 'CBSUB1:';
 
@@ -30,15 +42,13 @@ function gate(){
     <label for="gTail">전화번호 끝 4자리</label>
     <input id="gTail" placeholder="예: 1234" inputmode="numeric" autocomplete="off" maxlength="4">
     <div class="gnote">같은 이름이 여럿일 때 구분하려고 받습니다. <b>전체 번호는 적지 마세요.</b>
-      적은 내용은 <b>이 브라우저 안에만</b> 저장되고 아무 데도 전송되지 않습니다.</div>
-    <label class="gchk"><input type="checkbox" id="gTeach"> 나는 <b>강사</b>입니다 (수강생 제출을 확인합니다)</label>
+      적은 내용은 이 브라우저에 저장되고, <b>「강사님께 보내기」를 누를 때만</b> 강사님 화면으로 전달됩니다.
+      다음에 올 때도 <b>같은 이름·같은 4자리</b>로 들어오세요.</div>
+    <label class="gchk"><input type="checkbox" id="gTeach"> 나는 <b>강사</b>입니다 (숫자 6자리만 넣으면 됩니다)</label>
     <div id="gPwWrap" hidden>
-      <label for="gPw">강사 비밀번호</label>
-      <input id="gPw" type="password" placeholder="${pwSet() ? '강사 비밀번호를 입력하세요' : '쓸 비밀번호를 처음 정해 주세요'}" autocomplete="off" maxlength="30">
-      <div class="gnote" id="gPwNote">${pwSet()
-        ? '이 기기에 정해 둔 강사 비밀번호입니다. 잊었으면 아래 「비밀번호 다시 정하기」를 누르세요.'
-        : '<b>처음이라 아직 비밀번호가 없습니다.</b> 지금 정하면 이 기기에 저장됩니다. 비밀번호 자체는 저장되지 않고 알아볼 수 없는 형태(지문)로만 남습니다.'}</div>
-      ${pwSet() ? '<button class="gskip" id="gPwReset" type="button">비밀번호 다시 정하기 (이 기기의 제출 목록도 함께 지웁니다)</button>' : ''}
+      <label for="gPw">강사 6자리 숫자</label>
+      <input id="gPw" type="password" placeholder="숫자 6자리" inputmode="numeric" autocomplete="off" maxlength="6">
+      <div class="gnote" id="gPwNote">강사만 아는 6자리 숫자입니다. 이름·번호는 안 적어도 됩니다. 맞으면 「제출 확인」 버튼이 생깁니다.</div>
     </div>
     <button class="gbtn" id="gGo">시작하기</button>
     <button class="gskip" id="gSkip">이름 없이 둘러보기</button>
@@ -49,27 +59,18 @@ function gate(){
   t.oninput = () => { t.value = t.value.replace(/\D/g, '').slice(0, 4) };
   const tc = o.querySelector('#gTeach'), pwWrap = o.querySelector('#gPwWrap');
   tc.onchange = () => { pwWrap.hidden = !tc.checked; if (tc.checked) o.querySelector('#gPw').focus() };
-  const rs = o.querySelector('#gPwReset');
-  if (rs) rs.onclick = () => {
-    if (rs.dataset.armed) { try { localStorage.removeItem(PWKEY); localStorage.removeItem(SUBKEY) } catch(e){}
-      o.remove(); gate(); return }
-    rs.dataset.armed = '1'; rs.textContent = '정말 지웁니다 — 한 번 더 누르세요';
-    setTimeout(() => { if (rs.dataset.armed) { delete rs.dataset.armed;
-      rs.textContent = '비밀번호 다시 정하기 (이 기기의 제출 목록도 함께 지웁니다)' } }, 4000);
-  };
   const bad = (el, why) => { el.focus(); el.classList.add('bad');
     const nt = o.querySelector('#gPwNote'); if (nt && why) nt.innerHTML = `<b style="color:#B4473A">${why}</b>`;
     setTimeout(() => el.classList.remove('bad'), 1400) };
   const go = async () => {
-    const nm = n.value.trim();
-    if (!nm) { bad(n); return }
+    let nm = n.value.trim();
     const teach = tc.checked;
     if (teach) {
-      const pw = o.querySelector('#gPw').value;
-      if (pw.length < 4) { bad(o.querySelector('#gPw'), '비밀번호는 4자 이상으로 정해 주세요.'); return }
-      if (pwSet()) { if (!await pwOK(pw)) { bad(o.querySelector('#gPw'), '비밀번호가 맞지 않습니다.'); return } }
-      else { await pwSave(pw) }
-    }
+      const pw = o.querySelector('#gPw').value.trim();
+      if (!/^\d{6}$/.test(pw)) { bad(o.querySelector('#gPw'), '숫자 6자리를 적어 주세요.'); return }
+      if (await pwHash(pw) !== PIN_HASH) { bad(o.querySelector('#gPw'), '강사 숫자가 맞지 않습니다.'); return }
+      if (!nm) nm = '강사';
+    } else if (!nm) { bad(n); return }
     st.me = { name: nm, tail: t.value.trim(), teacher: teach, at: today() };
     save(); o.remove(); render();
   };
@@ -77,13 +78,13 @@ function gate(){
   o.querySelector('#gSkip').onclick = () => {
     st.me = { name: '', tail: '', teacher: false, skip: 1 }; save(); o.remove(); render();
   };
-  [n, t].forEach(e => e.onkeydown = ev => { if (ev.key === 'Enter') go() });
+  [n, t, o.querySelector('#gPw')].forEach(e => e.onkeydown = ev => { if (ev.key === 'Enter') go() });
   setTimeout(() => n.focus(), 50);
 }
 
 function whoHTML(){
   if (!st.me) return '';
-  if (st.me.teacher) return `<span class="who t">🧑‍🏫 ${esc(st.me.name)} 강사님</span>`;
+  if (st.me.teacher) return `<span class="who t">🧑‍🏫 ${st.me.name && st.me.name !== '강사' ? esc(st.me.name) + ' ' : ''}강사님</span>`;
   if (meOK()) return `<span class="who">${esc(st.me.name)}${st.me.tail ? ' · ' + esc(st.me.tail) : ''}</span>`;
   return `<span class="who off">이름 없이 보는 중</span>`;
 }
@@ -95,7 +96,7 @@ function subPayload(){
     v: 1,
     name: (st.me && st.me.name) || '',
     tail: (st.me && st.me.tail) || '',
-    at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16).replace('T', ' '),
     day: [dCnt(0), dCnt(1), dCnt(2)],
     prep: [pd, PTOT],
     ans: st.ans, checks: st.checks, atd: st.at, memo: st.memo
@@ -133,21 +134,48 @@ function submitBox(){
   document.querySelectorAll('.gov').forEach(e => e.remove());
   const txt = subText();
   const o = document.createElement('div'); o.className = 'gov';
-  o.innerHTML = `<div class="gbox"><div class="gtop"><h3>📤 강사님께 제출</h3><button id="sbX">닫기</button></div>
-    <p class="gsub">${meOK() ? '' : '<b style="color:var(--warn)">이름이 없습니다.</b> 오른쪽 위 이름을 눌러 먼저 적어 주세요.<br>'}
-      아래 글 전체를 복사해서 <b>카카오톡·문자·이메일</b>로 강사님께 보내세요.
-      파일로 내고 싶으면 「.txt로 저장」을 누르세요. <b>인터넷으로 저절로 전송되지 않습니다.</b></p>
+  const tailOK = /^\d{4}$/.test(((st.me && st.me.tail) || '').trim());
+  o.innerHTML = `<div class="gbox"><div class="gtop"><h3>📤 강사님께 보내기</h3><button id="sbX">닫기</button></div>
+    <p class="gsub">${meOK() ? '' : '<b style="color:var(--warn)">이름이 없습니다.</b> 오른쪽 위 「바꾸기」를 눌러 먼저 적어 주세요.<br>'}
+      ${meOK() && !tailOK ? '<b style="color:var(--warn)">전화번호 끝 4자리가 없습니다.</b> 오른쪽 위 「바꾸기」에서 적어야 보낼 수 있습니다.<br>' : ''}
+      「강사님께 보내기」를 누르면 지금까지 적은 답 전부가 <b>강사님 화면으로 바로 전달</b>됩니다.
+      보낸 뒤에 더 적었으면 다시 누르세요. 최신 것으로 바뀝니다.${st.sent ? ` <b>마지막 보냄: ${esc(st.sent)}</b>` : ''}</p>
     <div class="afbtns">
-      <button id="sbCopy" class="rp-btn" style="margin:0">📋 제출 코드 복사</button>
-      ${CAN_DL ? '<button id="sbDl">💾 .txt로 저장</button>' : '<span class="afno">클로드 화면에서는 파일 저장이 막혀 있습니다 — 위 「복사」를 쓰세요</span>'}
+      <button id="sbSend" class="rp-btn" style="margin:0">📤 강사님께 보내기</button>
+      <button id="sbCopy">📋 제출 코드 복사 (인터넷이 안 될 때)</button>
+      ${CAN_DL ? '<button id="sbDl">💾 .txt로 저장</button>' : ''}
     </div>
+    <div id="sbMsg" class="gsub"></div>
+    <details style="margin-top:10px"><summary class="gsub" style="cursor:pointer">제출 코드 보기 (예비용)</summary>
     <pre id="sbPre">${esc(txt)}</pre>
-    <div class="swn">마지막 줄의 긴 글자에 <b>내가 적은 답 전부</b>가 들어 있습니다. 지우면 강사님이 내용을 볼 수 없습니다.</div>
+    <div class="swn">마지막 줄의 긴 글자에 <b>내가 적은 답 전부</b>가 들어 있습니다. 카톡·문자로 보낼 때 지우지 마세요.</div></details>
   </div>`;
   document.body.appendChild(o);
   const close = () => o.remove();
   o.querySelector('#sbX').onclick = close;
   o.onclick = e => { if (e.target === o) close() };
+  o.querySelector('#sbSend').onclick = async e => {
+    const b = e.currentTarget, m = o.querySelector('#sbMsg');
+    if (!meOK()) { m.innerHTML = '<b style="color:var(--warn)">이름을 먼저 적어 주세요.</b> (오른쪽 위 「바꾸기」)'; return }
+    const tail = (st.me.tail || '').trim();
+    if (!/^\d{4}$/.test(tail)) { m.innerHTML = '<b style="color:var(--warn)">전화번호 끝 4자리를 적어야 보낼 수 있습니다.</b> 오른쪽 위 「바꾸기」에서 적어 주세요.'; return }
+    if (!FB) { m.innerHTML = '<b style="color:var(--warn)">서버에 연결되지 않았습니다.</b> 인터넷을 확인하고 새로고침하거나, 「제출 코드 복사」로 보내 주세요.'; return }
+    b.disabled = true; b.textContent = '보내는 중…';
+    try {
+      const p = JSON.parse(JSON.stringify(subPayload())); p.kind = 'camp';
+      const name = st.me.name.trim().slice(0, 30);
+      const id = sid(name, tail), now = Date.now();
+      await FB.collection('workbook').doc(id).set({ name: name, code: tail, day: 0, a: p, updatedAt: now });
+      await FB.collection('workbook').doc(ROSTER).set({ name: '명단', code: '0000', day: 0, a: { [id]: now }, updatedAt: now }, { merge: true });
+      st.sent = p.at; save();
+      m.innerHTML = `<b style="color:var(--sage)">보냈습니다 ✓</b> ${esc(p.at)} · 강사님 화면에 바로 보입니다.`;
+      b.textContent = '📤 다시 보내기';
+    } catch (err) {
+      m.innerHTML = '<b style="color:var(--warn)">보내지 못했습니다.</b> 인터넷을 확인하고 다시 누르거나, 「제출 코드 복사」로 보내 주세요.';
+      b.textContent = '📤 강사님께 보내기';
+    }
+    b.disabled = false;
+  };
   o.querySelector('#sbCopy').onclick = async e => {
     const b = e.currentTarget;
     try { await navigator.clipboard.writeText(txt) } catch (_) {
@@ -175,41 +203,83 @@ function teacherBox(){
   document.querySelectorAll('.gov').forEach(e => e.remove());
   const o = document.createElement('div'); o.className = 'gov';
   o.innerHTML = `<div class="gbox wide"><div class="gtop"><h3>🧑‍🏫 수강생 제출 확인</h3><button id="tbX">닫기</button></div>
-    <p class="gsub">수강생이 보낸 <b>제출 코드</b>를 아래에 붙여넣고 「불러오기」를 누르세요. 여러 명을 계속 쌓을 수 있습니다.
-      <b>이 목록은 강사님 브라우저에만 저장됩니다.</b></p>
-    <textarea id="tbIn" rows="4" placeholder="받은 제출 코드를 통째로 붙여넣으세요"></textarea>
-    <div class="afbtns"><button id="tbGo" class="rp-btn" style="margin:0">불러오기</button>
-      <button id="tbClr">목록 비우기</button></div>
+    <p class="gsub">수강생이 「강사님께 보내기」를 누르면 여기에 <b>바로</b> 쌓입니다. 이름을 누르면 답 전체를 볼 수 있습니다.
+      인터넷이 안 돼서 카톡·문자로 받은 <b>제출 코드</b>는 아래 칸에 붙여넣어 불러올 수 있습니다.</p>
+    <div class="afbtns"><button id="tbRefresh" class="rp-btn" style="margin:0">🔄 새로 불러오기</button>
+      <button id="tbCsv">📊 표(CSV)로 내려받기</button></div>
     <div id="tbMsg" class="gsub"></div>
-    <div id="tbList"></div>
+    <div id="tbList"><div class="tbnone">서버에서 불러오는 중…</div></div>
+    <details style="margin-top:12px"><summary class="gsub" style="cursor:pointer">카톡·문자로 받은 제출 코드 붙여넣기</summary>
+    <textarea id="tbIn" rows="4" placeholder="받은 제출 코드를 통째로 붙여넣으세요"></textarea>
+    <div class="afbtns"><button id="tbGo">불러오기</button>
+      <button id="tbClr">붙여넣은 목록 비우기</button></div></details>
   </div>`;
   document.body.appendChild(o);
   const close = () => o.remove();
   o.querySelector('#tbX').onclick = close;
   o.onclick = e => { if (e.target === o) close() };
   const msg = t => o.querySelector('#tbMsg').innerHTML = t;
+  let remote = [];
+  const key = x => (x.name || '') + '|' + (x.tail || '');
+  const allSubs = () => {
+    const seen = {}; const out = [];
+    remote.forEach(s => { seen[key(s)] = 1; out.push(s) });
+    loadSubs().forEach((s, i) => { if (!seen[key(s)]) out.push(Object.assign({}, s, { _local: i })) });
+    return out;
+  };
+  const fetchRemote = async () => {
+    if (!FB) { msg('<b style="color:var(--warn)">서버에 연결되지 않았습니다.</b> 인터넷을 확인하고 새로고침해 주세요.'); remote = []; return }
+    try {
+      const r = await FB.collection('workbook').doc(ROSTER).get();
+      const ids = r.exists ? Object.keys(r.data().a || {}) : [];
+      const docs = await Promise.all(ids.map(id => FB.collection('workbook').doc(id).get()));
+      remote = docs.filter(d => d.exists).map(d => d.data()).filter(d => d.a && d.a.kind === 'camp')
+        .sort((x, y) => (y.updatedAt || 0) - (x.updatedAt || 0))
+        .map(d => Object.assign({}, d.a, { name: d.name, tail: d.code, at: d.a.at || '', _remote: 1 }));
+      msg(`서버에서 <b>${remote.length}명</b> 불러왔습니다. (${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })})`);
+    } catch (e) { msg('<b style="color:var(--warn)">서버 목록을 불러오지 못했습니다.</b> ' + esc(e && e.message || '')); remote = [] }
+  };
 
   const draw = () => {
-    const subs = loadSubs();
+    const subs = allSubs();
     const L = o.querySelector('#tbList');
-    if (!subs.length) { L.innerHTML = '<div class="tbnone">아직 불러온 제출이 없습니다.</div>'; return }
+    if (!subs.length) { L.innerHTML = '<div class="tbnone">아직 받은 제출이 없습니다.</div>'; return }
     L.innerHTML = `<div class="tbh">받은 제출 ${subs.length}명</div>` + subs.map((s, i) => {
-      const done = s.day[0] + s.day[1] + s.day[2];
+      const done = (s.day[0] || 0) + (s.day[1] || 0) + (s.day[2] || 0);
       return `<div class="tbr">
         <button class="tbmain" data-open="${i}">
-          <span class="tbn">${esc(s.name || '(이름 없음)')}${s.tail ? ' <i>' + esc(s.tail) + '</i>' : ''}</span>
-          <span class="tbc">${esc((s.ans.name || '').trim() || '카페 이름 미정')}</span>
-          <span class="tbg"><b>${done}/15</b> 교시 · 창업 준비 ${s.prep[0]}/${s.prep[1]}</span>
+          <span class="tbn">${esc(s.name || '(이름 없음)')}${s.tail ? ' <i>' + esc(s.tail) + '</i>' : ''}${s._remote ? '' : ' <i>붙여넣기</i>'}</span>
+          <span class="tbc">${esc(((s.ans || {}).name || '').trim() || '카페 이름 미정')}</span>
+          <span class="tbg"><b>${done}/15</b> 교시 · 창업 준비 ${(s.prep || [0, 0])[0]}/${(s.prep || [0, 0])[1]}</span>
           <span class="tbd">${esc(s.at || '')}</span>
         </button>
         <button class="tbdel" data-del="${i}" title="지우기">✕</button>
       </div>`;
     }).join('');
-    L.querySelectorAll('[data-open]').forEach(b => b.onclick = () => showSub(loadSubs()[+b.dataset.open]));
-    L.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-      const a = loadSubs(); a.splice(+b.dataset.del, 1); saveSubs(a); draw();
+    L.querySelectorAll('[data-open]').forEach(b => b.onclick = () => showSub(allSubs()[+b.dataset.open]));
+    L.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      const s = allSubs()[+b.dataset.del]; if (!s) return;
+      if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = '정말 지움?'; setTimeout(() => { delete b.dataset.armed; b.textContent = '✕' }, 3000); return }
+      if (s._remote) { try { await FB.collection('workbook').doc(ROSTER).set({ a: { [sid(s.name, s.tail)]: firebase.firestore.FieldValue.delete() } }, { merge: true }); await fetchRemote() } catch (e) { msg('<b style="color:var(--warn)">목록에서 빼지 못했습니다.</b>') } }
+      else { const a = loadSubs(); a.splice(s._local, 1); saveSubs(a) }
+      draw();
     });
   };
+  o.querySelector('#tbRefresh').onclick = async () => { await fetchRemote(); draw() };
+  o.querySelector('#tbCsv').onclick = () => {
+    const subs = allSubs(); if (!subs.length) { msg('내려받을 제출이 없습니다.'); return }
+    const cols = [['이름', s => s.name], ['뒤4자리', s => s.tail], ['보낸 때', s => s.at],
+      ['DAY1', s => (s.day || [])[0]], ['DAY2', s => (s.day || [])[1]], ['DAY3', s => (s.day || [])[2]], ['창업준비', s => (s.prep || [])[0]]];
+    DAYS.forEach(d => d.p.forEach(pg => pg.f.forEach(f => cols.push([d.n + ' ' + f.p, s => (s.ans || {})[f.k] || '']))));
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const csv = '\ufeff' + cols.map(c => q(c[0])).join(',') + '\n' + subs.map(s => cols.map(c => q(c[1](s))).join(',')).join('\n');
+    if (!CAN_DL) { navigator.clipboard.writeText(csv).then(() => msg('클로드 화면에서는 파일을 못 받아 <b>표 내용을 복사</b>했습니다. 엑셀·구글시트에 붙여넣으세요.'), () => msg('복사하지 못했습니다.')); return }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = '브랜드에서오픈까지_제출_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  };
+  fetchRemote().then(draw);
   o.querySelector('#tbGo').onclick = () => {
     const p = decodeSub(o.querySelector('#tbIn').value);
     if (!p) { msg('<b style="color:var(--warn)">제출 코드를 찾지 못했습니다.</b> 받은 글을 <b>통째로</b> 붙여넣었는지 확인해 주세요 (「CBSUB1:」로 시작하는 줄이 있어야 합니다).'); return }
@@ -222,22 +292,21 @@ function teacherBox(){
   };
   o.querySelector('#tbClr').onclick = e => {
     const b = e.currentTarget;
-    if (b.dataset.armed) { saveSubs([]); delete b.dataset.armed; b.textContent = '목록 비우기'; b.classList.remove('armed'); msg('목록을 비웠습니다.'); draw(); return }
+    if (b.dataset.armed) { saveSubs([]); delete b.dataset.armed; b.textContent = '붙여넣은 목록 비우기'; b.classList.remove('armed'); msg('붙여넣은 목록을 비웠습니다.'); draw(); return }
     b.dataset.armed = '1'; b.textContent = '정말 모두 지웁니다 — 한 번 더'; b.classList.add('armed');
-    setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = '목록 비우기'; b.classList.remove('armed') } }, 4000);
+    setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = '붙여넣은 목록 비우기'; b.classList.remove('armed') } }, 4000);
   };
-  draw();
 }
 
 // 한 사람의 제출 내용 전체 보기
 function showSub(p){
   if (!p) return;
-  const A = k => { const v = (p.ans[k] || '').trim(); return v ? esc(v) : '<span class="em">아직 작성 전</span>' };
+  const A = k => { const v = ((p.ans || {})[k] || '').trim(); return v ? esc(v) : '<span class="em">아직 작성 전</span>' };
   let h = `<div class="gbox wide"><div class="gtop"><h3>${esc(p.name || '(이름 없음)')}${p.tail ? ' · ' + esc(p.tail) : ''}</h3>
     <button id="ssBack">← 목록</button><button id="ssX">닫기</button></div>
     <p class="gsub">제출 ${esc(p.at || '')} · DAY1 ${p.day[0]}/5 · DAY2 ${p.day[1]}/5 · DAY3 ${p.day[2]}/5 · 창업 준비 ${p.prep[0]}/${p.prep[1]}</p>`;
   DAYS.forEach((d, i) => {
-    h += `<div class="ssd"><h4>${d.n} · ${esc(d.title)} <span>${p.day[i]}/5</span></h4><dl>`;
+    h += `<div class="ssd"><h4>${d.n} · ${esc(d.title)} <span>${(p.day || [])[i] || 0}/5</span></h4><dl>`;
     d.p.forEach(pg => pg.f.forEach(f => { h += `<dt>${esc(f.p)}</dt><dd>${A(f.k)}</dd>` }));
     h += `</dl></div>`;
   });

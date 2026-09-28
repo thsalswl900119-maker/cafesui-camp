@@ -3,6 +3,7 @@ const KEY='cafe-brand-open';
 // 아티팩트의 실제 주소는 claude.ai가 아니라 ...frame.claudeusercontent.com 입니다 (직접 확인).
 const IN_ARTIFACT = /claude\.ai$|claudeusercontent\.com$/.test(location.hostname);
 const CAN_DL = !IN_ARTIFACT;
+const FILE_BASE = 'https://thsalswl900119-maker.github.io/cafesui-camp/';   // 엑셀 양식은 깃허브 페이지에서 받습니다
 const EMPTY={day:0,open:{0:1},ans:{},checks:{},memo:{},at:{},ex:{},me:null};
 let st=load(), tmr=null;
 function load(){try{const r=localStorage.getItem(KEY);if(r)return Object.assign({},EMPTY,JSON.parse(r))}catch(e){}return JSON.parse(JSON.stringify(EMPTY))}
@@ -213,10 +214,9 @@ function renderDay(){
     if(p.tm) h+=termBox(p.tm);
     if(p.lesson) h+=[].concat(p.lesson).map(n=>LESSON[n]||'').join('');
     if(p.links) h+=`<div class="links">${p.links.map(l=>`<a href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join('')}</div>`;
-    if(p.files) h+=`<div class="files">${p.files.map(f=>CAN_DL
-      ? `<a class="dl" href="${f[1]}" download><b>⬇ ${esc(f[0])}</b><span>${esc(f[2])}</span></a>`
-      : `<div class="dl off"><b>⬇ ${esc(f[0])}</b><span>${esc(f[2])}</span><span class="no">클로드 화면 안에서는 파일을 받을 수 없습니다 — 강사님이 따로 보내 드립니다</span></div>`).join('')
-      }<div class="dlnote">눌러도 안 받아지면 <b>오른쪽 클릭 → 「다른 이름으로 링크 저장」</b>을 쓰세요. 엑셀·넘버스·구글시트에서 다 열립니다.</div></div>`;
+    if(p.files) h+=`<div class="files">${p.files.map(f=>
+      `<a class="dl" href="${FILE_BASE}${encodeURIComponent(f[1])}" target="_blank" rel="noopener"${CAN_DL?' download':''}><b>⬇ ${esc(f[0])}</b><span>${esc(f[2])}</span></a>`).join('')
+      }<div class="dlnote">누르면 새 창에서 바로 내려받아집니다. 안 되면 <b>오른쪽 클릭 → 「다른 이름으로 링크 저장」</b>을 쓰세요. 엑셀·넘버스·구글시트에서 다 열립니다.</div></div>`;
     p.f.forEach((fl,m)=>{
       const k=fl.k, open=st.ex[k];
       h+=`<div class="fbox"><label for="a${k}">${esc(fl.p)}</label>
