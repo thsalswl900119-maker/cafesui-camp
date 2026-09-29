@@ -31,7 +31,7 @@ window.FIREBASE_CONFIG = {
 <div class="msg" id="msg" style="text-align:center"></div>
 <dl id="sum" style="margin-top:14px"></dl>
 <button class="btn" id="again" style="display:none">다시 보내기</button>
-<button class="btn ghost" id="close">← 워크북으로 돌아가기</button></div>
+<button class="btn ghost" id="close">이 창 닫기</button></div>
 </div><script>
 var FBC=window.FIREBASE_CONFIG,FS_BASE='https://firestore.googleapis.com/v1/projects/'+FBC.projectId+'/databases/(default)/documents/workbook/',ROSTER='명단_0000';
 function sid(n,c){return String(n).replace(/[\/\s]+/g,'')+'_'+c;}
@@ -63,6 +63,6 @@ function go(){
   },function(e){show(false,'보내지 못했습니다','<span class="bad">인터넷 연결을 확인하고 「다시 보내기」를 눌러 주세요.</span><br>계속 안 되면 워크북의 「복사하기 (예비)」로 복사해 강사 카톡에 보내 주세요.<br><small>'+esc(e&&e.message||'')+'</small>');});
 }
 document.getElementById('again').onclick=go;
-document.getElementById('close').onclick=function(){if(history.length>1){history.back();}else{window.close();document.getElementById('msg').innerHTML+='<br>워크북 화면(탭)으로 돌아가 주세요.';}};
+document.getElementById('close').onclick=function(){window.close();setTimeout(function(){document.getElementById('msg').innerHTML+='<br>창이 안 닫히면 이 탭을 직접 닫고 워크북으로 돌아가 주세요.';},300);};
 go();
 </script></body></html>
