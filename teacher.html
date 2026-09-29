@@ -26,7 +26,7 @@ window.FIREBASE_CONFIG = {
   appId: "1:496994957073:web:2ddc6ba5cea5f60a483eb0"
 };
 </script></head><body><div class="wrap">
-<div class="top"><h1>강사 화면 · 받은 브랜드 북</h1><button class="btn ghost sm" id="out" style="display:none">나가기</button></div>
+<div class="top"><h1>강사 화면 · 받은 브랜드 북</h1><div style="display:flex;gap:6px"><button class="btn ghost sm" id="backwb">← 워크북으로</button><button class="btn ghost sm" id="out" style="display:none">나가기</button></div></div>
 <div class="card" id="login"><h2>강사 6자리 숫자</h2><input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="숫자 6자리" style="text-align:center;letter-spacing:.2em;font-size:22px"><button class="btn" id="enter">들어가기</button><div class="msg" id="lmsg"></div></div>
 <div id="main" style="display:none">
   <div class="card"><div class="top"><h2>받은 브랜드 북 <small id="cnt" style="font-size:14px;color:var(--grey)"></small></h2><div style="display:flex;gap:6px"><button class="btn ghost sm" id="refresh">↻ 새로 불러오기</button><button class="btn ghost sm" id="csv">📊 CSV</button></div></div>
@@ -82,7 +82,7 @@ $('#csv').onclick=function(){if(!books.length){alert('내려받을 제출이 없
   FIELDS.forEach(function(f){if(f.d<=3)cols.push([f.d+'일차 '+(f.p||'')+'교시 '+f.l+(f.ph&&f.l!==f.ph?'('+f.ph+')':''),function(b){return v(b.a,f.k)}]);});
   var q=function(x){return '"'+String(x==null?'':x).replace(/"/g,'""')+'"'};var csv='\ufeff'+cols.map(function(c){return q(c[0])}).join(',')+'\n'+books.map(function(b){return cols.map(function(c){return q(c[1](b))}).join(',')}).join('\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='카페브랜드북_제출_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();};
-$('#refresh').onclick=load;
+$('#refresh').onclick=load;$('#backwb').onclick=function(){if(history.length>1)history.back();else location.href='https://claude.ai/artifact/YbWHhf36KxVRKxPdwhHpzX';};
 function unlock(){$('#login').style.display='none';$('#main').style.display='';$('#out').style.display='';load();}
 $('#enter').onclick=function(){var p=$('#pin').value.trim();if(!/^\d{6}$/.test(p)){$('#lmsg').textContent='숫자 6자리를 적어 주세요.';return;}
   sha(p).then(function(h){if(h!==PIN_HASH){$('#lmsg').textContent='강사 숫자가 맞지 않습니다.';return;}try{sessionStorage.setItem('cbb_t','1')}catch(e){}unlock();});};
