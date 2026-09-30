@@ -34,7 +34,7 @@ b{font-weight:700}
 .btn:focus-visible{outline:3px solid var(--corald);outline-offset:2px}
 .note{margin-top:14px;padding:12px 14px;background:#F2EADB;border:1px solid var(--corall);border-radius:10px;font-size:13px;color:var(--ink)}
 .note b{color:var(--corald)}
-.bar{position:sticky;top:0;z-index:5;background:var(--cream);padding:10px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--cream);padding:10px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .bar .who{font-family:var(--head);color:var(--corald);font-size:16px}
 .bar .who small{font-family:var(--body);color:var(--grey);font-size:12px;margin-left:6px}
 .saved{font-size:12px;color:var(--grey);display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -126,7 +126,7 @@ b{font-weight:700}
 .book table{width:100%;border-collapse:collapse;font-size:13px}.book th{font-family:var(--head);font-weight:400;color:var(--corald);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}.book td{padding:4px 6px;border-bottom:1px solid var(--line)}
 .book .line{font-family:var(--head);font-size:17px;color:var(--ink);background:var(--panel);border-radius:10px;padding:12px;line-height:1.5}
 .sw{display:flex;gap:8px;margin:6px 0}.sw div{flex:1;height:40px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.5);padding-bottom:3px}
-.foot{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(to top,var(--cream) 70%,rgba(248,240,231,0));padding:10px 16px 16px;z-index:5}
+.foot{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(to top,var(--cream) 70%,rgba(248,240,231,0));padding:10px 16px calc(16px + env(safe-area-inset-bottom,0px));z-index:5}
 .foot .in{max-width:720px;margin:0 auto;display:flex;gap:10px}
 .foot .btn{margin:0;padding:13px 8px;font-size:15px;min-width:0;flex:1 1 auto;white-space:nowrap}.foot .btn.ghost{flex:0 0 auto;width:auto;padding:13px 10px}
 .modal{position:fixed;inset:0;background:rgba(60,40,20,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
