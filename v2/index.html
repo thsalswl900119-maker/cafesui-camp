@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>나만의 컨셉북 워크북</title>
+<title>나만의 컨셉북 워크북 ver.2</title>
 <meta name="description" content="부산 청년잡 성장프로젝트 · 9년 차 카페 사장이 처음 공개하는 은밀한 창업 노트 · 3일 워크북 ver.2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Do+Hyeon&display=swap">
@@ -256,7 +256,7 @@ function unb64(t){return JSON.parse(decodeURIComponent(escape(atob(t))));}
 function menuName(i){return v('menu'+i)||(i===1?'시그니처':'서브 '+(i-1));}
 
 /* ───── 제목 ───── */
-$('#orgChip').textContent=CUR.org;$('#verChip').textContent='ver.'+CUR.ver+' · '+CUR.dates[0].split(' ')[0]+'~'+CUR.dates[2].split(' ')[0]+' · '+CUR.place;$('#mainTitle').textContent=CUR.title;$('#mainSub').textContent=CUR.sub+' · '+CUR.teacher;
+$('#orgChip').textContent=CUR.org;$('#verChip').textContent='ver.'+CUR.ver+' · '+CUR.dates[0].split(' ')[0]+'~'+CUR.dates[2].split(' ')[0]+' · '+CUR.place;$('#mainTitle').textContent=CUR.title+' ver.'+CUR.ver;$('#mainSub').textContent=CUR.sub+' · '+CUR.teacher;
 $('#tListUrl').textContent=BASE+'teacher.html';
 
 /* ───── 저장 ───── */
